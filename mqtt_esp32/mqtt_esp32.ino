@@ -1,4 +1,5 @@
-#include <Wire.h>
+/*原作者:https://randomnerdtutorials.com/esp32-mqtt-publish-dht11-dht22-arduino/#more-95552*/
+#include <WiFi.h>
 #include <DHT.h>
 extern "C" {
   #include "freertos/FreeRTOS.h"
@@ -8,24 +9,24 @@ extern "C" {
 
 #define DHTPIN 5
 #define DHTTYPE DHT11
-#define ldrPin 4
+const int potPin = 4; //可變電阻腳位
 
 //mqtt broker
-#define mqtt_host IPAddress(192, 168, 1 ,xxx)
+#define mqtt_host IPAddress(140,128,110,156)
 #define mqtt_port 1883
 
 #define mqtt_pub_temp "esp/dht/temperature"
 #define mqtt_pub_hum "esp/dht/humidity"
-#define mqtt_pub_ldr "esp/ldr"
+#define mqtt_pub_pot "esp/pot"
 
-const char* ssid = wifi_ssid;
-const char* password = wifi_password;
+#define ssid  "SUGAR S11"
+#define password  "0910388155"
 
 DHT dht(DHTPIN,DHTTYPE);
 
 float temp;
 float hum;
-int ldr;
+int pot_val = 0;
 
 //建立AsyncMqttClien物件mqttClient來處理mqtt用戶端與timers當mqtt代理人和router斷線時可重新連接
 AsyncMqttClient mqttClient;
@@ -49,7 +50,7 @@ void connectToMqtt() {
 
 //此函數處理WiFi事件。如果成功連接至broker和router，則打印esp32位址;反之失去連接則開始timer並reconnect
 void WiFiEvent(WiFiEvent_t event) {
-  Serial.printf("[WiFi-event] event: %d\n",, event);
+  Serial.printf("[WiFi-event] event: %d\n", event);
   switch(event) {
     case SYSTEM_EVENT_STA_GOT_IP:
       Serial.println("WiFi連線");
@@ -69,7 +70,7 @@ void WiFiEvent(WiFiEvent_t event) {
 void onMqttConnect(bool sessionPresent) {
   Serial.println("Connected to MQTT");
   Serial.print("Session present: ");
-  Serial.print(seesionPresent);
+  Serial.print(sessionPresent);
 }
 
 //MQTT disconnect
@@ -102,30 +103,27 @@ void setup() {
   mqttClient.onConnect(onMqttConnect);
   mqttClient.onDisconnect(onMqttDisconnect);
   mqttClient.onPublish(onMqttPublish);
-  mqttClient.setServer(MQTT_HOST, MQTT_PORT);
+  mqttClient.setServer(mqtt_host, mqtt_port);
   
   //如果broker要求驗證(username and password)
-  mqttClient.setCredentials("REPlACE_WITH_YOUR_USER", "REPLACE_WITH_YOUR_PASSWORD");
+  //mqttClient.setCredentials("REPlACE_WITH_YOUR_USER", "REPLACE_WITH_YOUR_PASSWORD");
   
-  connectToWiFi();
+  connectToWifi();
 }
 
 void loop() {
-  unsigned long currentMillis = mills();
-  if(currentMills - previousMillis >= interval){
-    previousMills = currentMills;
+  unsigned long currentMillis = millis();
+  if(currentMillis - previousMillis >= interval){
+    previousMillis = currentMillis;
     hum = dht.readHumidity();
     temp = dht.readTemperature();
-    int ldr_val =analogRead(ldrPin);
-    ldr=map(ldr_val,0,1023,0,225);
+    pot_val =analogRead(potPin);
+    int pot=map(pot_val,0,1023,0,225);
     if(isnan(temp)||isnan(hum)){ //isnan = is NOT A NUMBER which return true when it is not a number 
       Serial.println(F("無偵測到DHT sensor!"));
       return;
     }
-    if(isnan(ldr)){
-      Serial.println(F("無偵測到感光元件!"));
-      return;
-    }
+    
     //publish an mqtt message on topic esp/dht/temperature
     uint16_t packetIdPub1 = mqttClient.publish(mqtt_pub_temp, 1, true, String(temp).c_str());                            
     Serial.printf("Publishing on topic %s at QoS 1, packetId: %i", mqtt_pub_temp, packetIdPub1);
@@ -136,13 +134,12 @@ void loop() {
     Serial.printf("Publishing on topic %s at QoS 1, packetId %i: ", mqtt_pub_hum, packetIdPub2);
     Serial.printf("Message: %.2f \n", hum);
     
-    // Publish an MQTT message on topic esp32/ldr
-    uint16_t packetIdPub3 = mqttClient.publish(mqtt_pub_ldr, 1, true, String(ldr).c_str());                            
-    Serial.printf("Publishing on topic %s at QoS 1, packetId %i: ", mqtt_pub_ldr, packetIdPub3);
-    Serial.printf("Message: %.2f \n", ldr);
+    // Publish an MQTT message on topic esp32/pot
+    uint16_t packetIdPub3 = mqttClient.publish(mqtt_pub_pot, 1, true, String(pot).c_str());                            
+    Serial.printf("Publishing on topic %s at QoS 1, packetId %i: ", mqtt_pub_pot, packetIdPub3);
+    Serial.printf("Message: %.2f \n", pot);
     
   }
                                              
 }
   
-
