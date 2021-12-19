@@ -8,7 +8,7 @@ extern "C" {
 
 #define DHTPIN 5
 #define DHTTYPE DHT11
-#define ldrPin 6
+#define ldrPin 4
 
 //mqtt broker
 #define mqtt_host IPAddress(192, 168, 1 ,xxx)
@@ -24,7 +24,7 @@ const char* password = wifi_password;
 DHT dht(DHTPIN,DHTTYPE);
 
 float temp;
-float humd;
+float hum;
 int ldr;
 
 //建立AsyncMqttClien物件mqttClient來處理mqtt用戶端與timers當mqtt代理人和router斷線時可重新連接
@@ -111,6 +111,38 @@ void setup() {
 }
 
 void loop() {
+  unsigned long currentMillis = mills();
+  if(currentMills - previousMillis >= interval){
+    previousMills = currentMills;
+    hum = dht.readHumidity();
+    temp = dht.readTemperature();
+    int ldr_val =analogRead(ldrPin);
+    ldr=map(ldr_val,0,1023,0,225);
+    if(isnan(temp)||isnan(hum)){ //isnan = is NOT A NUMBER which return true when it is not a number 
+      Serial.println(F("無偵測到DHT sensor!"));
+      return;
+    }
+    if(isnan(ldr)){
+      Serial.println(F("無偵測到感光元件!"));
+      return;
+    }
+    //publish an mqtt message on topic esp/dht/temperature
+    uint16_t packetIdPub1 = mqttClient.publish(mqtt_pub_temp, 1, true, String(temp).c_str());                            
+    Serial.printf("Publishing on topic %s at QoS 1, packetId: %i", mqtt_pub_temp, packetIdPub1);
+    Serial.printf("Message: %.2f \n", temp);
+
+    // Publish an MQTT message on topic esp32/dht/humidity
+    uint16_t packetIdPub2 = mqttClient.publish(mqtt_pub_hum, 1, true, String(hum).c_str());                            
+    Serial.printf("Publishing on topic %s at QoS 1, packetId %i: ", mqtt_pub_hum, packetIdPub2);
+    Serial.printf("Message: %.2f \n", hum);
+    
+    // Publish an MQTT message on topic esp32/ldr
+    uint16_t packetIdPub3 = mqttClient.publish(mqtt_pub_ldr, 1, true, String(ldr).c_str());                            
+    Serial.printf("Publishing on topic %s at QoS 1, packetId %i: ", mqtt_pub_ldr, packetIdPub3);
+    Serial.printf("Message: %.2f \n", ldr);
+    
+  }
+                                             
 }
   
 
