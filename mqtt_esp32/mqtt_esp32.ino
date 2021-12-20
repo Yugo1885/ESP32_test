@@ -19,8 +19,8 @@ const int potPin = 4; //可變電阻腳位
 #define mqtt_pub_hum "esp/dht/humidity"
 #define mqtt_pub_pot "esp/pot"
 
-#define ssid  "SUGAR S11"
-#define password  "0910388155"
+#define ssid  "your_ssid"
+#define password  "your_password"
 
 DHT dht(DHTPIN,DHTTYPE);
 
