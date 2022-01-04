@@ -10,8 +10,8 @@ char password[] ="your_password";
 DHT dht(DHTPIN, DHTTYPE);
 float temp;
 float hum;
-String TEMP;
-String HUM;
+String TEMP = "";
+String HUM = "";
 
 unsigned long previousMillis = 0;
 const long initerval = 2000;
@@ -26,6 +26,12 @@ void setup(){
   while(WiFi.status() !=WL_CONNECTED){
     delay(1000);
     Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
 }
 
 void loop(){
@@ -43,5 +49,21 @@ void loop(){
   HUM = "Humidity:"+String((int)humidity)+"%";
   Serial.println(TEMP);
   Serial.println(HUM);
-    
+  
+  WiFiClient client;
+  Serial.print("connecting to ");
+  Serial.println(host);
+  if(!client.connect(host,httpPort)){
+    Serial.println("connection failed");
+    return;
+  }
+  //xxx-xxxx-xxx為自身金鑰
+  String getStr_line = "GET /trigger/Line_msg/with/key/XXX-XXXX-XXX?value1="+TEMP+"&value2="+HUM+" HTTP/1.1\r\n"
+  + "Host: " + host + "\r\n" + "User-Agent: BuildFailureDetectorESP32\r\n" + "Connection: close\r\n\r\n";
+  
+  Serial.println(getStr_line);
+  client.print(getStr_line);
+  client.stop();
+  
+  delay(60000);
 }
