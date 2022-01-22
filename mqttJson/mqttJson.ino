@@ -2,10 +2,12 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 
+#define pubTopic "esp/test"
+
 const char* ssid = "your_ssid";
 const char* password = "your_password";
 
-const char* mqtt_server = "127.0.0.1";
+const char* mqtt_server = "your_mqtt_server_ip";
 const int mqtt_port = 1883;
 const char* mqtt_user = "your_mqtt_username";
 const char* mqtt_password = "your_mqtt_password";
@@ -28,7 +30,7 @@ void setup(){
   client.setServer(mqtt_server, mqtt_port);
   while(!client.connected()){
     Serial.println(F("連接MQTT中..."));
-    if(client.connect("esp32Client", mqtt_user, mqtt_password)){
+    if(client.connect("esp32Client", mqtt_user, mqtt_password)){ //client.connect("random clientID", mqtt_user, mqtt_password)
       Serial.println(F("已連上MQTT"));
     }else{
       Serial.print(F("錯誤狀態: "));
@@ -39,6 +41,12 @@ void setup(){
 }
 
 void loop(){
+  StaticJsonDocument<200> doc; //括號內為該文檔所分配的RAM
+  doc["sensor"] = "DHT11";
+  doc["type"] = "temperature";
+  doc["value"] = 25;
+  
+  serializeJson(doc, Serial); 
   
 }
   
