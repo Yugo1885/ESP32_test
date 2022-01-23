@@ -2,7 +2,7 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 
-#define pubTopic "esp/test"
+#define outTopic "esp/test"
 
 const char* ssid = "your_ssid";
 const char* password = "your_password";
@@ -46,7 +46,12 @@ void loop(){
   doc["type"] = "temperature";
   doc["value"] = 25;
   
-  serializeJson(doc, Serial); 
+  //To publish a JSON document to an MQTT topic, you need to serialize it to a temporary buffer
+  char buffer[256]; //PubSubClient 限制訊息大小為256 bytes(包含標頭)
+  size_t n = serializeJson(doc, buffer); //無符號整數定義，據說可以節省CPU週期
+  client.publish(outTopic, buffer, n);
+  delay(5000); //每五秒發布
+  client.endPublish();
   
 }
   
